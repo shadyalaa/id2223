@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import reader as rd
 
-NUM_HIDDEN_NODES = 20
-NUM_EPOCHS = 800
+NUM_HIDDEN_NODES = 50
+NUM_EPOCHS = 1500
 
 X = tf.placeholder(tf.float32, [None, 26], name="X")
 Y = tf.placeholder(tf.float32, [None, 26], name="Y")
@@ -36,7 +36,13 @@ def model(X, Y, num_hidden=10):
 
 zhat = model(X, Y, NUM_HIDDEN_NODES)
 
-train_op = tf.train.AdamOptimizer().minimize(tf.nn.l2_loss(tf.reduce_mean(tf.square(zhat - Z))))
+
+#train_op = tf.train.AdamOptimizer().minimize(tf.nn.l2_loss(tf.div(tf.reduce_mean(tf.squared_difference(zhat,Z)),tf.reduce_mean(tf.square(Z)))))
+#train_op = tf.train.AdamOptimizer().minimize(tf.nn.l2_loss(tf.reduce_mean(tf.div(tf.squared_difference(zhat,Z),tf.square(Z)))))
+#error = tf.div(2*tf.abs(tf.sub(zhat,Z)),tf.add(zhat,Z))
+#loss = tf.reduce_sum(error)
+loss = tf.reduce_sum(tf.squared_difference(zhat,Z))
+train_op = tf.train.AdamOptimizer().minimize(tf.nn.l2_loss(loss))
 
 sess = tf.Session()
 sess.run(tf.initialize_all_variables())
@@ -44,17 +50,29 @@ sess.run(tf.initialize_all_variables())
 errors = []
 for i in range(NUM_EPOCHS):
     T,q,lwhr = rd.nextBatch(100,i)
-    sess.run(train_op, feed_dict={X: T, Y: q, Z: lwhr})
+    _ , mse = sess.run((train_op,loss), feed_dict={X: T, Y: q, Z: lwhr})
     if i!=0 and i%100 == 0:
 	T,q,lwhr = rd.validBatch()
-	mse = sess.run(tf.nn.l2_loss(tf.reduce_mean(tf.square(zhat - lwhr))),  feed_dict={X:T, Y:q})
-	errors.append(mse) 
+	_,pred = sess.run((tf.nn.l2_loss(tf.reduce_mean(tf.squared_difference(zhat,lwhr))),zhat),  feed_dict={X:T, Y:q})
+        #pred = sess.run(zhat,  feed_dict={X:T, Y:q})
+	#mse = sess.run(tf.nn.l2_loss(tf.reduce_mean(tf.div(tf.squared_difference(zhat,lwhr),tf.square(lwhr)))),  feed_dict={X:T, Y:q})
+	#errors.append(mse) 
 	print "epoch %d, validation MSE %g" % (i, mse)
+	out.close()
 
 plt.figure(1)
 
-plt.plot(errors)
-plt.xlabel('#epochs')
-plt.ylabel('MSE')
+plt.plot(lwhr[0])
+plt.plot(pred[0])
+plt.xlabel('index')
+plt.ylabel('out')
+
+plt.figure(2)
+
+plt.plot(lwhr[10])
+plt.plot(pred[10])
+plt.xlabel('index')
+plt.ylabel('out')
+
 
 plt.show()

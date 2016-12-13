@@ -27,7 +27,7 @@ def validBatch():
         T_arr=[]
         q_arr=[]
         lwhr_arr=[]
-        for i in range(90000,91000):
+        for i in range(300000,300300):
                 f = open(os.path.join(data_path,str(i)+".csv"))
                 lines = f.readlines()
                 T=[]
